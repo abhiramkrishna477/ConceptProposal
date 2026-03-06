@@ -1057,6 +1057,20 @@
             `;
             table.appendChild(row);
         });
+
+        // 💾 AUTO-SAVE: Automatically save changes locally as you type!
+        if (state.activeScriptId) {
+            DB.updateScript(state.activeScriptId, {
+                name: campaign,
+                director: director,
+                brief: document.getElementById('in_brief').value,
+                episodes: editorEpisodes
+            });
+            // Update the scripts list in the background so the dashboard stays fresh
+            DB.getScriptsByClient(state.activeClientId).then(scripts => {
+                state.scripts = scripts;
+            });
+        }
     }
 
     async function generatePDF() {
@@ -1095,6 +1109,6 @@
     }
 
     window.onload = () => { initDashboard(); };
-</scr ipt>
+</script>
 </body>
 </html>
