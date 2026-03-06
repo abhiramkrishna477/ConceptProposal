@@ -397,26 +397,45 @@
         .brief-title { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #000; margin-bottom: 8px; display: block; }
         .brief-content { font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: #334155; max-width: 85%; }
 
-        .script-grid { width: 100%; border: 2px solid #000; border-collapse: collapse; table-layout: fixed; }
+        /* FIX: Using Flexbox instead of Table to prevent column squishing in PDF export */
+        .script-grid { 
+            width: 100%; 
+            border: 2px solid #000; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        
         .grid-row { 
+            display: flex;
             border-bottom: 1px solid #000; 
             page-break-inside: avoid; /* Prevents rows from splitting across pages */
             break-inside: avoid;
         }
         
+        .grid-row:last-child {
+            border-bottom: none;
+        }
+        
         .cell-left { 
             width: 80px; 
+            flex-shrink: 0; /* Prevents this column from EVER squishing */
             border-right: 2px solid #000; 
             padding: 20px 10px; 
-            text-align: center; 
-            vertical-align: middle; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
             font-weight: 900; 
             font-size: 14px; 
             text-transform: uppercase; 
             background: #f8fafc; 
         }
         
-        .cell-right { padding: 0; vertical-align: top; }
+        .cell-right { 
+            flex: 1; /* Takes up all remaining space */
+            display: flex;
+            flex-direction: column;
+            min-width: 0; /* Allows text wrapping to work correctly */
+        }
 
         .video-title-bar {
             background: #000;
@@ -579,10 +598,10 @@
                     <div class="brief-content" id="out_brief">Enter the campaign overview here...</div>
                 </div>
 
-                <!-- Script Grid -->
-                <table class="script-grid" id="script-table">
+                <!-- Script Grid using DIVs instead of Table -->
+                <div class="script-grid" id="script-table">
                 <!-- Rows injected here -->
-                </table>
+                </div>
 
                 <div class="footer-note">Confidential Document • Proprietary Production Workflow • © Aigfox 2026</div>
             </div>
@@ -1024,17 +1043,17 @@
         table.innerHTML = '';
 
         editorEpisodes.forEach((ep, i) => {
-            const row = document.createElement('tr');
+            const row = document.createElement('div');
             row.className = 'grid-row';
             
             let titleBarHTML = showTitles ? `<div class="video-title-bar">${ep.title || 'Untitled Sequence'}</div>` : '';
 
             row.innerHTML = `
-                <td class="cell-left">#${(i + 1).toString().padStart(2, '0')}</td>
-                <td class="cell-right">
+                <div class="cell-left">#${(i + 1).toString().padStart(2, '0')}</div>
+                <div class="cell-right">
                     ${titleBarHTML}
                     <div class="plot-content">${ep.plot || 'Enter the plot details...'}</div>
-                </td>
+                </div>
             `;
             table.appendChild(row);
         });
@@ -1048,17 +1067,12 @@
         btn.innerText = "Generating PDF...";
         btn.disabled = true;
 
-        // Temporarily modify the live element for perfect PDF formatting
-        const origPadding = element.style.padding;
-        const origWidth = element.style.width;
-        const origShadow = element.style.boxShadow;
-
-        element.style.padding = '0';
-        element.style.width = '170mm'; 
-        element.style.boxShadow = 'none';
-
+        // FIX: Instead of stripping padding and trying to recalculate widths,
+        // we leave the 210mm A4 setup completely intact and tell jsPDF to 
+        // use 0 margin so it copies the visual canvas exactly 1:1.
+        
         const opt = {
-            margin: 20, 
+            margin: 0, 
             filename: `Aigfox_Script_${editorClientName.replace(/\s+/g, '_')}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { 
@@ -1066,8 +1080,7 @@
                 useCORS: true,
                 scrollY: 0 
             },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['css', 'legacy'], avoid: '.grid-row' }
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
         try {
@@ -1076,16 +1089,12 @@
             console.error("PDF Generation Error:", err);
             alert("Failed to generate PDF. Check console for details.");
         } finally {
-            element.style.padding = '20mm';
-            element.style.width = '210mm';
-            element.style.boxShadow = '0 50px 100px -20px rgba(0, 0, 0, 0.5)';
-
             btn.innerText = originalText;
             btn.disabled = false;
         }
     }
 
     window.onload = () => { initDashboard(); };
-</script>
+</scr ipt>
 </body>
 </html>
